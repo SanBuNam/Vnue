@@ -1,2 +1,2 @@
 # react and graphql
-react-graphQL-advanced
+react-graphQL using next.js
