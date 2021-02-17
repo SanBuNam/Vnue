@@ -1,6 +1,8 @@
-import { User } from './schemas/User'
+import { createAuth } from '@keystone-next/auth';
 import { config, createSchema } from '@keystone-next/keystone/schema';
+import { User } from './schemas/User';
 import 'dotenv/config';
+import { withItemData, statelessSessions } from '@keystone-next/keystone/session';
 
 const databaseURL = process.env.DATABASE_URL;
 
@@ -9,7 +11,17 @@ const sessionConfig = {
   secret: process.env.COOKIE_SECRET,
 };
 
-export default config({
+const { withAuth } = createAuth({
+  listKey: 'User',
+  identityField: 'email',
+  secretField: 'password',
+  initFirstItem: {
+    fields: ['name', 'email', 'password'],
+    // TODO: Add in initial rules here
+  }
+});
+
+export default withAuth(config({
   server: {
     cors: {
       origin: [process.env.FRONTEND_URL],
@@ -26,8 +38,13 @@ export default config({
     User
   }),
   ui: {
-    // TODO: change this for rules
-    isAccessAllowed: () => true,
+    // Show the UI only for people who pass this test
+    isAccessAllowed: ({ session }) => {
+      return !!session?.data;
+    },
   },
-  // TODO: Add session values here
-});
+  session: withItemData(statelessSessions(sessionConfig), {
+    // GraphQL Query
+    User: 'id name email',
+  }),
+}));
